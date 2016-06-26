@@ -23,11 +23,21 @@ var Engine = (function(global) {
         win = global.window,
         canvas = doc.createElement('canvas'),
         ctx = canvas.getContext('2d'),
-        lastTime;
+        lastTime,
+        foundCollision;
 
-    canvas.width = 505;
-    canvas.height = 606;
+    canvas.width = 606;
+    canvas.height = 772;
     doc.body.appendChild(canvas);
+    allEnemies = [
+      //enemies on first block
+      new Enemy(0,2,'images/enemy-bug.png'),
+      new Enemy(0,3,'images/enemy-bug.png'),
+      //enemies on second block
+      new Enemy(0,5,'images/enemy-bug.png'),
+      new Enemy(0,6,'images/enemy-bug.png')
+    ];
+    player = new Player(2,7,'images/char-boy.png');
 
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
@@ -56,7 +66,9 @@ var Engine = (function(global) {
         /* Use the browser's requestAnimationFrame function to call this
          * function again as soon as the browser is able to draw another frame.
          */
-        win.requestAnimationFrame(main);
+        if(!foundCollision){
+          win.requestAnimationFrame(main);
+        }
     }
 
     /* This function does some initial setup that should only occur once,
@@ -80,9 +92,26 @@ var Engine = (function(global) {
      */
     function update(dt) {
         updateEntities(dt);
+        foundCollision = player.checkCollisions(allEnemies);
         // checkCollisions();
     }
 
+    /* Render the GAME OVER text as well as the instructions to restart
+    or continue the next life the player has.
+    */
+    function displayGameOver(){
+      if(foundCollision){
+        ctx.moveTo(0,0);
+        ctx.font = "60pt Candal";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "white";
+        ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2);
+
+        ctx.strokeStyle = "black";
+        ctx.lineWidth=3;
+        ctx.strokeText("GAME OVER",canvas.width/2,canvas.height/2);
+      }
+    }
     /* This is called by the update function and loops through all of the
      * objects within your allEnemies array as defined in app.js and calls
      * their update() methods. It will then call the update function for your
@@ -92,7 +121,7 @@ var Engine = (function(global) {
      */
     function updateEntities(dt) {
         allEnemies.forEach(function(enemy) {
-            enemy.update(dt);
+            enemy.update();
         });
         player.update();
     }
@@ -110,13 +139,15 @@ var Engine = (function(global) {
         var rowImages = [
                 'images/water-block.png',   // Top row is water
                 'images/stone-block.png',   // Row 1 of 3 of stone
-                'images/stone-block.png',   // Row 2 of 3 of stone
-                'images/stone-block.png',   // Row 3 of 3 of stone
                 'images/grass-block.png',   // Row 1 of 2 of grass
-                'images/grass-block.png'    // Row 2 of 2 of grass
+                'images/grass-block.png',    // Row 2 of 2 of grass
+                'images/stone-block.png',   // Row 2 of 3 of stone
+                'images/grass-block.png',   // Row 1 of 2 of grass
+                'images/grass-block.png',   // Row 2 of 2 of grass
+                'images/stone-block.png'   // Row 3 of 3 of stone
             ],
-            numRows = 6,
-            numCols = 5,
+            numRows = 8,
+            numCols = 6,
             row, col;
 
         /* Loop through the number of rows and columns we've defined above
@@ -137,6 +168,7 @@ var Engine = (function(global) {
         }
 
         renderEntities();
+        displayGameOver();
     }
 
     /* This function is called by the render function and is called on each game
@@ -148,10 +180,10 @@ var Engine = (function(global) {
          * the render function you have defined.
          */
         allEnemies.forEach(function(enemy) {
-            enemy.render();
+            enemy.render(ctx,Resources.get(enemy.image));
         });
 
-        player.render();
+        player.render(ctx,Resources.get(player.image));
     }
 
     /* This function does nothing but it could have been a good place to
@@ -159,7 +191,7 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
-        // noop
+
     }
 
     /* Go ahead and load all of the images we know we're going to need to
