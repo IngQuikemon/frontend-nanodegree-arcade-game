@@ -19,7 +19,7 @@ Character.prototype.render = function(ctx){
 
 var Enemy = function(startX,startY,image){
   Character.call(this,startX,startY,image);
-  this.velocity = ((Math.floor((Math.random() * 10)) % 2) + 1);
+  this.velocity = ((Math.floor((Math.random() * 10)) % 3) + 1);
 }
 Enemy.prototype = Object.create(Character.prototype);
 Enemy.prototype.constructor = Enemy;
@@ -28,6 +28,7 @@ Enemy.prototype.update = function(){
   this.posY = (this.cordY * 83) - 25;
   if(this.posX > 707){
     this.posX =-101;
+    this.velocity = ((Math.floor((Math.random() * 10)) % 3) + 1);
   }
   if(this.posX < -101){
     this.posX = -101;
