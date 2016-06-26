@@ -36,6 +36,7 @@ Enemy.prototype.update = function(){
 
 var Player = function(startX,startY,image){
   Character.call(this,startX,startY,image);
+  this.requestReset = false;
 }
 Player.prototype =  Object.create(Character.prototype);
 Player.prototype.constructor = Player;
@@ -44,6 +45,9 @@ Player.prototype.handleInput = function(keyInput){
   var movX = 0;
   var movY = 0;
   switch(keyInput){
+    case 'space':
+      this.requestReset = true;
+      break;
     case 'up':
       movY = -1;
     break;

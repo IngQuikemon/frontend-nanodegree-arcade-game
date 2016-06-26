@@ -24,7 +24,7 @@ var Engine = (function(global) {
         canvas = doc.createElement('canvas'),
         ctx = canvas.getContext('2d'),
         lastTime,
-        foundCollision;
+        foundCollision = false;
 
     canvas.width = 606;
     canvas.height = 772;
@@ -66,9 +66,7 @@ var Engine = (function(global) {
         /* Use the browser's requestAnimationFrame function to call this
          * function again as soon as the browser is able to draw another frame.
          */
-        if(!foundCollision){
-          win.requestAnimationFrame(main);
-        }
+        win.requestAnimationFrame(main);
     }
 
     /* This function does some initial setup that should only occur once,
@@ -91,8 +89,8 @@ var Engine = (function(global) {
      * on the entities themselves within your app.js file).
      */
     function update(dt) {
-        updateEntities(dt);
         foundCollision = player.checkCollisions(allEnemies);
+        updateEntities(dt);
         // checkCollisions();
     }
 
@@ -105,12 +103,18 @@ var Engine = (function(global) {
         ctx.font = "60pt Candal";
         ctx.textAlign = "center";
         ctx.fillStyle = "white";
-        ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2);
-
+        ctx.fillText("GAME OVER",canvas.width/2,(3*128));
         ctx.strokeStyle = "black";
         ctx.lineWidth=3;
-        ctx.strokeText("GAME OVER",canvas.width/2,canvas.height/2);
+        ctx.strokeText("GAME OVER",canvas.width/2,3*128);
+        ctx.font = "16pt Candal";
+        ctx.fillStyle = "white";
+        ctx.fillText("PRESS SPACE BAR TO TRY AGAIN",canvas.width/2,(5*83));
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.strokeText("PRESS SPACE BAR TO TRY AGAIN",canvas.width/2,(5*83));
       }
+      reset();
     }
     /* This is called by the update function and loops through all of the
      * objects within your allEnemies array as defined in app.js and calls
@@ -120,10 +124,12 @@ var Engine = (function(global) {
      * render methods.
      */
     function updateEntities(dt) {
+      if(!foundCollision){
         allEnemies.forEach(function(enemy) {
             enemy.update();
         });
         player.update();
+      }
     }
 
     /* This function initially draws the "game level", it will then call
@@ -191,7 +197,28 @@ var Engine = (function(global) {
      * those sorts of things. It's only called once by the init() method.
      */
     function reset() {
+      if(player.requestReset && foundCollision){
+        player.cordX = 2;
+        player.cordY = 7;
+        foundCollision = false;
+        player.requestReset = false;
+        //win.requestAnimationFrame(main);
+      }else{
+        player.requestReset = false;
+      }
+    }
 
+    /* Handles the request to reset the game from the menu, as well as future
+     * avatar selection.
+    */
+    function handleInput(keyCode){
+      switch (keyCode) {
+        case 'space':
+          if(foundCollision)
+            reset();
+          break;
+        default:
+      }
     }
 
     /* Go ahead and load all of the images we know we're going to need to
