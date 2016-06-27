@@ -17,9 +17,26 @@ Character.prototype.render = function(ctx){
   ctx.drawImage(Resources.get(this.image), this.posX, this.posY);
 }
 
+var Gem = function(startX,startY,image,points){
+  Character.call(this,startX,startY,image);
+  this.points = points;
+  this.display = true;
+}
+Gem.prototype = Object.create(Character.prototype);
+Gem.prototype.constructor = Gem;
+Gem.prototype.render = function(ctx){
+  ctx.drawImage(Resources.get(this.image), this.posX + 25, this.posY + 75,50,85);
+}
+
+var Rock = function(startX,startY,image){
+  Character.call(this,startX,startY,image);
+}
+Rock.prototype = Object.create(Character.prototype);
+Rock.prototype.constructor = Rock;
+
 var Enemy = function(startX,startY,image){
   Character.call(this,startX,startY,image);
-  this.velocity = ((Math.floor((Math.random() * 10)) % 3) + 1);
+  this.velocity = generateRandom(3);
 }
 Enemy.prototype = Object.create(Character.prototype);
 Enemy.prototype.constructor = Enemy;
@@ -28,7 +45,7 @@ Enemy.prototype.update = function(){
   this.posY = (this.cordY * 83) - 25;
   if(this.posX > 707){
     this.posX =-101;
-    this.velocity = ((Math.floor((Math.random() * 10)) % 3) + 1);
+    this.velocity = generateRandom(3);
   }
   if(this.posX < -101){
     this.posX = -101;
@@ -38,6 +55,11 @@ Enemy.prototype.update = function(){
 var Player = function(startX,startY,image){
   Character.call(this,startX,startY,image);
   this.requestReset = false;
+  this.score = 0;
+  this.lifeCount = 3;
+  this.goalReached = false;
+  this.previousX = startX;
+  this.previousY = startY;
 }
 Player.prototype =  Object.create(Character.prototype);
 Player.prototype.constructor = Player;
@@ -65,6 +87,8 @@ Player.prototype.handleInput = function(keyInput){
       movX = movY = 0;
       break;
   }
+  this.previousX= this.cordX;
+  this.previousY = this.cordY;
   this.cordX = this.cordX + movX;
   this.cordY = this.cordY + movY;
   if(this.cordX > 5)
@@ -80,23 +104,49 @@ Player.prototype.handleInput = function(keyInput){
   }
   if(this.cordY < 1){
     this.cordY = 1;
+    this.goalReached = true;
   }
 }
-Player.prototype.checkCollisions = function(enemyList){
-  var pBoundXL = (this.cordX * 101) + 34;
-  var pBoundXR = ((this.cordX * 101) + 101)-34;
+Player.prototype.checkCollisions = function(enemyList,gemList,rockList){
+  var pBound = this.posX + 50;
   for(var x = 0; x < enemyList.length;x++){
     var enemy = enemyList[x];
-    eBoundXL = enemy.posX;
-    eBoundXR = enemy.posX + 101;
+    eBound = enemy.posX + 50;
+    var distDiff = pBound - eBound;
     if(this.cordY == enemy.cordY){
-      if(eBoundXL > pBoundXL && eBoundXL < pBoundXR){
-        return true;
-      }
-      if(eBoundXR > pBoundXL && eBoundXR < pBoundXR){
+      if(distDiff < 65 && distDiff > - 65){
         return true;
       }
     }
   }
+  for(var x = 0; x < gemList.length;x++){
+    var gem = gemList[x];
+    if(gem.display){
+      if(this.cordY == gem.cordY){
+        if(this.cordX == gem.cordX){
+          this.score += gem.points;
+          gem.display=false;
+        }
+      }
+    }
+  }
+  for(var x = 0; x < rockList.length; x++){
+    var rock = rockList[x];
+    if(this.cordY == rock.cordY){
+      if(this.cordX == rock.cordX){
+        this.cordX = this.previousX;
+        this.cordY = this.previousY;
+      }
+    }
+  }
   return false;
+}
+Player.prototype.checkLifeCount = function(){
+  if(this.lifeCount <= 0){
+    this.lifeCount = 3;
+    this.score = 0;
+  }
+  else{
+    this.lifeCount = this.lifeCount - 1;
+  }
 }

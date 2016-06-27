@@ -37,6 +37,19 @@ var Engine = (function(global) {
       new Enemy(0,5,'images/enemy-bug.png'),
       new Enemy(0,6,'images/enemy-bug.png')
     ];
+    gemLocations = [2,3,5,6];
+    allGems = [
+      new Gem( generateRandom(6) - 1,gemLocations[generateRandom(4)-1], 'images/Gem-Blue.png',100),
+      new Gem( generateRandom(6) - 1,gemLocations[generateRandom(4)-1], 'images/Gem-Green.png',250),
+      new Gem( generateRandom(6) - 1,gemLocations[generateRandom(4)-1], 'images/Gem-Orange.png',500)
+    ];
+    rockLocations = [1,4];
+    allRocks = [
+      new Rock(generateRandom(6) - 1,rockLocations[generateRandom(2)-1], 'images/Rock.png'),
+      new Rock(generateRandom(6) - 1,rockLocations[generateRandom(2)-1], 'images/Rock.png'),
+      new Rock(generateRandom(6) - 1,rockLocations[generateRandom(2)-1], 'images/Rock.png'),
+      new Rock(generateRandom(6) - 1,rockLocations[generateRandom(2)-1], 'images/Rock.png')
+    ];
     player = new Player(2,7,'images/char-boy.png');
 
     /* This function serves as the kickoff point for the game loop itself
@@ -89,30 +102,33 @@ var Engine = (function(global) {
      * on the entities themselves within your app.js file).
      */
     function update(dt) {
-        foundCollision = player.checkCollisions(allEnemies);
+        foundCollision = player.checkCollisions(allEnemies,allGems,allRocks);
         updateEntities(dt);
-        // checkCollisions();
     }
 
     /* Render the GAME OVER text as well as the instructions to restart
     or continue the next life the player has.
     */
     function displayGameOver(){
-      if(foundCollision){
+      var displayText = player.lifeCount <= 0 ? "GAME OVER" : //"YOU GOT HIT";
+      player.goalReached == true ? "GOAL REACHED" : "YOU GOT HIT";
+      var displayContinue = player.goalReached == true ? "PRESS SPACE BAR TO CONTINUE"
+      : "PRESS SPACE BAR TO TRY AGAIN";
+      if(foundCollision || player.goalReached){
         ctx.moveTo(0,0);
         ctx.font = "60pt Candal";
         ctx.textAlign = "center";
         ctx.fillStyle = "white";
-        ctx.fillText("GAME OVER",canvas.width/2,(3*128));
+        ctx.fillText(displayText,canvas.width/2,(3*128));
         ctx.strokeStyle = "black";
         ctx.lineWidth=3;
-        ctx.strokeText("GAME OVER",canvas.width/2,3*128);
+        ctx.strokeText(displayText,canvas.width/2,3*128);
         ctx.font = "16pt Candal";
         ctx.fillStyle = "white";
-        ctx.fillText("PRESS SPACE BAR TO TRY AGAIN",canvas.width/2,(5*83));
+        ctx.fillText(displayContinue,canvas.width/2,(5*83));
         ctx.strokeStyle = "black";
         ctx.lineWidth = 1;
-        ctx.strokeText("PRESS SPACE BAR TO TRY AGAIN",canvas.width/2,(5*83));
+        ctx.strokeText(displayContinue,canvas.width/2,(5*83));
       }
       reset();
     }
@@ -124,9 +140,15 @@ var Engine = (function(global) {
      * render methods.
      */
     function updateEntities(dt) {
-      if(!foundCollision){
+      if(!foundCollision ){
         allEnemies.forEach(function(enemy) {
             enemy.update();
+        });
+        allGems.forEach(function(gem){
+            gem.update();
+        });
+        allRocks.forEach(function(rock){
+            rock.update();
         });
         player.update();
       }
@@ -175,8 +197,25 @@ var Engine = (function(global) {
 
         renderEntities();
         displayGameOver();
+        renderPlayerScore();
     }
 
+    /* Renders the score of the player as well as the lifes left in the session
+     * for the player. Once the lifes are gone, he will have to start from
+     * scratch.
+     */
+     function renderPlayerScore(){
+         ctx.beginPath();
+         ctx.rect(0,0,606,45);
+         ctx.fillStyle ="white";
+         ctx.fill();
+         ctx.font = "16pt Candal";
+         ctx.textAlign = "center";
+         ctx.fillStyle = "black";
+         ctx.fillText("Score:" + player.score,canvas.width/2,25);
+         ctx.drawImage(Resources.get(player.image), canvas.width-75, -5,25,45);
+         ctx.fillText(player.lifeCount,canvas.width - 40,30)
+     }
     /* This function is called by the render function and is called on each game
      * tick. Its purpose is to then call the render functions you have defined
      * on your enemy and player entities within app.js
@@ -185,10 +224,17 @@ var Engine = (function(global) {
         /* Loop through all of the objects within the allEnemies array and call
          * the render function you have defined.
          */
+         allGems.forEach(function(gem){
+           if(gem.display){
+             gem.render(ctx,Resources.get(gem.image));
+           }
+         });
         allEnemies.forEach(function(enemy) {
             enemy.render(ctx,Resources.get(enemy.image));
         });
-
+        allRocks.forEach(function(rock){
+            rock.render(ctx,Resources.get(rock.image));
+        });
         player.render(ctx,Resources.get(player.image));
     }
 
@@ -196,17 +242,29 @@ var Engine = (function(global) {
      * handle game reset states - maybe a new game menu or a game over screen
      * those sorts of things. It's only called once by the init() method.
      */
-    function reset() {
-      if(player.requestReset && foundCollision){
-        player.cordX = 2;
-        player.cordY = 7;
-        foundCollision = false;
-        player.requestReset = false;
-        //win.requestAnimationFrame(main);
+    function reset(){
+      if(player.requestReset && (foundCollision || player.goalReached)){
+        if(player.goalReached){
+          player.cordX = 2;
+          player.cordY = 7;
+          player.goalReached = false;
+          allGems.forEach(function(gem){
+            gem.display=true;
+            gem.posX = generateRandom(6) - 1;
+            gem.posY = gemLocations[generateRandom(4)-1];
+          });
+        }else{
+          player.cordX = 2;
+          player.cordY = 7;
+          foundCollision = false;
+          player.requestReset = false;
+          player.checkLifeCount();
+        }
       }else{
         player.requestReset = false;
       }
     }
+
 
     /* Handles the request to reset the game from the menu, as well as future
      * avatar selection.
@@ -214,7 +272,7 @@ var Engine = (function(global) {
     function handleInput(keyCode){
       switch (keyCode) {
         case 'space':
-          if(foundCollision)
+          if(foundCollision || player.goalReached)
             reset();
           break;
         default:
@@ -230,7 +288,11 @@ var Engine = (function(global) {
         'images/water-block.png',
         'images/grass-block.png',
         'images/enemy-bug.png',
-        'images/char-boy.png'
+        'images/char-boy.png',
+        'images/Gem-Blue.png',
+        'images/Gem-Green.png',
+        'images/Gem-Orange.png',
+        'images/Rock.png'
     ]);
     Resources.onReady(init);
 
